@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <iostream>
+#include <fstream>
 
 //#define FILE_STRUCT
 #define SSD_NAND_FILE_NAME "./ssd_nand.txt"
@@ -19,7 +21,7 @@ SSD::SSD()
 		FILE* fp = nullptr;
 
 		if ((result = fopen_s(&fp, SSD_NAND_FILE_NAME, "wb+")) != 0) {
-			return;// error
+			fopen_s(&fp, SSD_NAND_FILE_NAME, "wb+");
 		}
 
 		uint32_t value = 0;
@@ -44,7 +46,7 @@ SSD::SSD()
 		}
 
 		_close(fd);
-#else
+#elif defined(SSD_NAND_STREAM)
 		//DWORD attributes = GetFileAttributes(filePath);
 
 		//if (attributes != INVALID_FILE_ATTRIBUTES) {
@@ -82,18 +84,52 @@ SSD::SSD()
 		}
 
 		CloseHandle(hFile);
+#else
+		std::ofstream fout;
+		uint32_t value = 0;
+
+		fout.open(SSD_NAND_FILE_NAME, std::ios::out | std::ios::binary);
+
+		if (fout) {
+			for (int i = 0; i < 100; ++i) {
+				fout.write((const char*)&value, sizeof(uint32_t));
+			}
+		}
+
+		fout.close();
 #endif
 	}
 }
 
 uint32_t SSD::Read(uint32_t lba)
 {
-	return 0;
+	int result = 0, readValue = 0;
+	FILE* fp = nullptr;
+
+	if ((result = fopen_s(&fp, SSD_NAND_FILE_NAME, "rb")) != 0) {
+		fopen_s(&fp, SSD_NAND_FILE_NAME, "rb");
+	}
+
+	fread(&readValue, sizeof(uint32_t), 1, fp);
+
+	fclose(fp);
+
+	return readValue;
 }
 
 void SSD::Write(uint32_t lba, uint32_t value)
 {
+	int result = 0;
+	FILE* fp = nullptr;
 
+	if ((result = fopen_s(&fp, SSD_NAND_FILE_NAME, "wb")) != 0) {
+		fopen_s(&fp, SSD_NAND_FILE_NAME, "wb");
+	}
+
+	fwrite(&value, sizeof(uint32_t), 1, fp);
+
+	fflush(fp);
+	fclose(fp);
 }
 
 int SSD::handleError()
